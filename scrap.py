@@ -95,6 +95,141 @@ def linkedin_login(driver):
         cookies_json_object = json.dumps(cookies, indent=4)
         with open(LINKEDIN_COOKIES_FILE_NAME, 'w') as stat_file:
             stat_file.write(cookies_json_object)
+        print('Logged in to LinkedIn')
+    return driver
+
+def update_cookies(driver, url):
+    """
+        Updates the cookies of the given driver using the provided URL.
+
+        Parameters:
+            driver (WebDriver): The WebDriver instance used to interact with the browser.
+            url (str): The URL to fetch and update the cookies for.
+
+        Returns:
+            WebDriver: The updated WebDriver instance with the cookies added.
+    """
+    global cookies
+
+    count = 0
+
+    while count < 3 and any(item in driver.current_url for item in linkedin_not_logged_in):
+        print(f'{count}. url: {driver.current_url}')
+        if cookies and count == 0:
+            print(f'\nWe have cookies, url: {url}')
+        else:
+            print(f'\ngetting stored cookies, url: {url}')
+            if os.path.exists(LINKEDIN_COOKIES_FILE_NAME) and count < 2:
+                with open(LINKEDIN_COOKIES_FILE_NAME, 'r') as cookies_json_file:
+                    cookies = json.load(cookies_json_file)
+            else:
+                print('LinkedIn login started')
+                return linkedin_login(driver)
+            
+        print(f'adding cookies, url: {url}')
+        for cookie in cookies:
+            driver.add_cookie(cookie)
+        print(f'cookies added, url: {url}\n')
+
+        # Access LinkedIn as the authenticated user
+        print(f'fetching url: {url}')
+        driver.get(url)
+        print(f'fetched url: {url}\n')
+        count += 1
+
+    return driver
+
+def linked_search(driver, name):
+    """
+        Searches for a company on LinkedIn using the provided name.
+
+        Parameters:
+            driver (WebDriver): The web driver to use for interacting with the browser.
+            name (str): The name of the company to search for.
+
+        Returns:
+            str or None: The URL of the first search result, or None if no result is found.
+    """
+    try:
+        print(f'\n\nLinkedin search: {name}')
+        url = f"https://www.linkedin.com/search/results/companies/?keywords={name}"
+        driver.get(url)
+        driver.implicitly_wait(5)
+        driver = update_cookies(driver, url)
+        count = 0
+        href_attribute = None
+        while(not href_attribute):
+            if count == 3:
+                return None
+            time.sleep(1+count)
+            first_result = driver.find_element(By.CSS_SELECTOR, ".reusable-search__result-container .entity-result__title-text a")
+            if first_result:
+                href_attribute = first_result.get_attribute("href")
+            print(count, href_attribute)
+        return href_attribute
+    except:
+        return None
+
+def google_search(driver, name):
+    """
+        Searches for a given name on Google using the provided driver.
+        
+        Args:
+            driver (WebDriver): The WebDriver instance used for the search.
+            name (str): The name to search for.
+        
+        Returns:
+            str: The href attribute of the first <a> tag found on the search page, 
+                which corresponds to the Google search result for the given name.
+                Returns None if no search result is found after three attempts.
+    """
+    print(f'\n\ngoogle search: {name}')
+    q = f'https://www.google.com/search?q=site:linkedin.com/company/ AND "{name}"'
+    driver.get(q)
+    driver.implicitly_wait(5)
+    count = 0
+    href_attribute = None
+    while count < 3 and not href_attribute:
+        time.sleep(1+count)
+
+        print(f'{count}. Page Title: {driver.title}, name: {name}')
+        page_content = driver.page_source
+
+        # Create a BeautifulSoup object to parse the page content
+        soup = BeautifulSoup(page_content, 'html.parser')
+
+        search_element = soup.find(id='search')
+        # print(search_element)
+        if not search_element:
+            print(f"No search_element, name: {name}")
+            if 'Sign in' in driver.page_source:
+                print(f"The page contains 'Sign in', getting query, name: {name}")
+                driver.get(q)
+                print(f'got query p, name: {name}')
+            else:
+                print(f"The page does not contain 'Sign in', name: {name}")
+
+            time.sleep(10)
+            count += 1
+            continue
+        
+        cite_element = search_element.find('cite')
+        if not cite_element:
+            print(f"No cite_element, name: {name}")
+            count += 1
+            continue
+        
+        first_a_tag = cite_element.find_previous('a')
+        if not first_a_tag:
+            print(f"No first_a_tag, name: {name}")
+            count += 1
+            continue
+
+        # Get the 'href' attribute of the first <a> tag
+        href_attribute = first_a_tag.get('href')
+        print(href_attribute)
+        
+    return href_attribute
 
 def scrap_page_driver(driver, url):
     """
@@ -116,7 +251,6 @@ def scrap_page_driver(driver, url):
         company_size = company_size_element.text.split(' ')[0]
         print(f"Company size: {company_size}, url: {url}")
     except NoSuchElementException:
-        company_size = None
         print(f"Company size not found, url: {url}")
 
     # Find the element containing the company industry
@@ -125,7 +259,6 @@ def scrap_page_driver(driver, url):
         company_industry = industry_element.text
         print(f"Company industry: {company_industry}, url: {url}")
     except NoSuchElementException:
-        company_industry = None
         print(f"Company industry not found, url: {url}")
     return company_size, company_industry
 
@@ -167,47 +300,6 @@ def scrap_page_bs4(soup, url):
         print(f"Company industry not found, url: {url}")
     return company_size_no, company_industry
 
-def update_cookies(driver, url):
-    """
-        Update the cookies for the given driver and URL.
-        
-        Args:
-            driver (WebDriver): The WebDriver instance used to navigate the web pages.
-            url (str): The URL to update the cookies for.
-        
-        Returns:
-            None
-    """
-    global cookies
-
-    count = 0
-
-    while any(item in driver.current_url for item in linkedin_not_logged_in):
-        if count == 3:
-            return
-        print(f'{count}. url: {driver.current_url}')
-        if cookies:
-            print(f'\nWe have cookies, url: {url}')
-            break
-        else:
-            print(f'\ngetting stored cookies, url: {url}')
-            with open(LINKEDIN_COOKIES_FILE_NAME, 'r') as in_json_file:
-                cookies = json.load(in_json_file)
-            if cookies and count == 0:
-                print(f'adding cookies, url: {url}')
-                for cookie in cookies:
-                    driver.add_cookie(cookie)
-            else:
-                print('LinkedIn login started')
-                linkedin_login(driver)
-                print('Logged in to LinkedIn')
-        count += 1
-
-    # Access LinkedIn as the authenticated user
-    print(f'fetching url: {url}')
-    driver.get(url)
-    print(f'fetched url: {url}\n')
-
 def get_company_size_and_industry(driver, url: str):
     """
         Retrieves the company size and industry information from a given URL using a web driver.
@@ -222,121 +314,20 @@ def get_company_size_and_industry(driver, url: str):
     # Navigate to a website
     driver.get(url)
     driver.implicitly_wait(5)
-    if any(item in driver.current_url for item in linkedin_not_logged_in):
-        update_cookies(driver, url)
-    company_size_no = None
+    driver = update_cookies(driver, url)
+    company_size = None
     company_industry = None
     count = 0
-    while(not(company_size_no and company_industry)):
-        if count == 3:
-            break
+    while count < 3 and not (company_size and company_industry):
         time.sleep(1+count)
-
-        # Get and print the page title
-        page_title = driver.title
-        print(f'\n{count}. Page Title: {page_title}, url: {url}')
-
-        company_size_no, company_industry = scrap_page_driver(driver, url)
+        print(f'\n{count}. scrap_page_driver Page Title: {driver.title}, url: {url}')
+        company_size, company_industry = scrap_page_driver(driver, url)
         count += 1
-    if not (company_size_no or company_industry):
-        # Now you can access the content of the page after the popup is closed
-        page_content = driver.page_source
 
+    if not (company_size or company_industry):
         # Create a BeautifulSoup object to parse the page content
-        soup = BeautifulSoup(page_content, 'html.parser')
-        company_size_no, company_industry = scrap_page_bs4(soup, url)
+        print(f'\nscrap_page_bs4 Page Title: {driver.title}, url: {url}')
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        company_size, company_industry = scrap_page_bs4(soup, url)
 
-    return company_size_no, company_industry
-
-def linked_search(driver, name):
-    """
-        Searches for a company on LinkedIn using the provided name.
-
-        Parameters:
-            driver (WebDriver): The web driver to use for interacting with the browser.
-            name (str): The name of the company to search for.
-
-        Returns:
-            str or None: The URL of the first search result, or None if no result is found.
-    """
-    try:
-        print(f'\n\nLinkedin search: {name}')
-        url = f"https://www.linkedin.com/search/results/companies/?keywords={name}"
-        driver.get(url)
-        driver.implicitly_wait(5)
-        if any(item in driver.current_url for item in linkedin_not_logged_in):
-            update_cookies(driver, url)
-        count = 0
-        href_attribute = None
-        while(not href_attribute):
-            if count == 3:
-                return None
-            time.sleep(1+count)
-            first_result = driver.find_element(By.CSS_SELECTOR, ".reusable-search__result-container .entity-result__title-text a")
-            if first_result:
-                href_attribute = first_result.get_attribute("href")
-            print(count, href_attribute)
-        return href_attribute
-    except:
-        return None
-
-def google_search(driver, name):
-    """
-        Searches for a given name on Google using the provided driver.
-        
-        Args:
-            driver (WebDriver): The WebDriver instance used for the search.
-            name (str): The name to search for.
-        
-        Returns:
-            str: The href attribute of the first <a> tag found on the search page, 
-                which corresponds to the Google search result for the given name.
-                Returns None if no search result is found after three attempts.
-    """
-    print(f'\n\ngoogle search: {name}')
-    q = f'https://www.google.com/search?q=site:linkedin.com/company/ AND "{name}"'
-    driver.get(q)
-    driver.implicitly_wait(5)
-    count = 0
-    href_attribute = None
-    while(not href_attribute):
-        if count == 3:
-            return None
-        time.sleep(1+count)
-
-        print(f'{count}. Page Title: {driver.title}, name: {name}')
-        page_content = driver.page_source
-
-        # Create a BeautifulSoup object to parse the page content
-        soup = BeautifulSoup(page_content, 'html.parser')
-
-        search_element = soup.find(id='search')
-        # print(search_element)
-        if not search_element:
-            print(f"No search_element, name: {name}")
-            if 'Sign in' in driver.page_source:
-                print(f"The page contains 'Sign in', getting query, name: {name}")
-                driver.get(q)
-                print(f'got query p, name: {name}')
-            else:
-                print(f"The page does not contain 'Sign in', name: {name}")
-                # time.sleep(20)
-            time.sleep(10)
-            count += 1
-            continue
-        cite_element = search_element.find('cite')
-        if not cite_element:
-            print(f"No cite_element, name: {name}")
-            count += 1
-            continue
-        first_a_tag = cite_element.find_previous('a')
-        if not first_a_tag:
-            print(f"No first_a_tag, name: {name}")
-            count += 1
-            continue
-
-        # Get the 'href' attribute of the first <a> tag
-        href_attribute = first_a_tag.get('href')
-        print(href_attribute)
-        
-    return href_attribute
+    return company_size, company_industry
