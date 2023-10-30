@@ -1,21 +1,12 @@
 import json
-import os
 import signal
 import time
 
+from config import COMPANY_INDUSTRY_COLUMN, COMPANY_NAME_COLUMN, COMPANY_SIZE_COLUMN, LINKEDIN_PROFILE_COLUMN, SHEET_ID, SHEET_NAME, SHEETS_FILE_ID, STAT_FILE_NAME
 from custom_exceptions import timeout_handler
 from scrap import google_search, get_company_size_and_industry, linked_search, quit_driver, start_driver
 from sheets import google_auth, get_sheets_data, update_sheet
 
-# Get environment variables
-SHEETS_FILE_ID = os.getenv('SHEETS_FILE_ID')
-SHEET_NAME = os.getenv('SHEET_NAME')
-SHEET_ID = int(os.getenv('SHEET_ID'))
-COMPANY_NAME_COLUMN = os.getenv('COMPANY_NAME_COLUMN')
-LINKEDIN_PROFILE_COLUMN = os.getenv('LINKEDIN_PROFILE_COLUMN')
-COMPANY_SIZE_COLUMN = os.getenv('COMPANY_SIZE_COLUMN')
-COMPANY_INDUSTRY_COLUMN = os.getenv('COMPANY_INDUSTRY_COLUMN')
-STAT_FILE_NAME = os.getenv('STAT_FILE_NAME')
 
 # Initialize Google Sheets
 sheet_service = google_auth()

@@ -10,9 +10,8 @@ from selenium.common.exceptions import NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 
+from config import LINKEDIN_COOKIES_FILE_NAME, LINKEDIN_NOT_LOGGED_IN_PATHS
 
-LINKEDIN_COOKIES_FILE_NAME = os.getenv('LINKEDIN_COOKIES_FILE_NAME')
-linkedin_not_logged_in = ['/signup/cold-join', '/signup', '/login', '/authwall']
 
 def start_driver():
     """
@@ -113,7 +112,7 @@ def update_cookies(driver, url):
 
     count = 0
 
-    while count < 3 and any(item in driver.current_url for item in linkedin_not_logged_in):
+    while count < 3 and any(item in driver.current_url for item in LINKEDIN_NOT_LOGGED_IN_PATHS):
         print(f'{count}. url: {driver.current_url}')
         if cookies and count == 0:
             print(f'\nWe have cookies, url: {url}')

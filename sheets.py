@@ -8,20 +8,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-# If modifying these scopes, delete the file token.json.
-SCOPES = (
-    'https://www.googleapis.com/auth/drive',
-    'https://www.googleapis.com/auth/documents',
-    'https://www.googleapis.com/auth/spreadsheets.readonly',
-)
+from config import COMPANY_INDUSTRY_COLUMN, COMPANY_NAME_COLUMN, COMPANY_SIZE_COLUMN, CREDENTIAL_FILE_PATH, LINKEDIN_PROFILE_COLUMN, SCOPES, TOKEN_FILE_PATH
 
-# environment variables
-TOKEN_FILE_PATH = os.getenv('TOKEN_FILE_PATH')
-CREDENTIAL_FILE_PATH = os.getenv('CREDENTIAL_FILE_PATH')
-LINKEDIN_PROFILE_COLUMN = os.getenv('LINKEDIN_PROFILE_COLUMN')
-COMPANY_SIZE_COLUMN = os.getenv('COMPANY_SIZE_COLUMN')
-COMPANY_INDUSTRY_COLUMN = os.getenv('COMPANY_INDUSTRY_COLUMN')
-COMPANY_NAME_COLUMN = os.getenv('COMPANY_NAME_COLUMN')
 
 SHEETS = None
 
