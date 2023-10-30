@@ -21,6 +21,7 @@ CREDENTIAL_FILE_PATH = os.getenv('CREDENTIAL_FILE_PATH')
 LINKEDIN_PROFILE_COLUMN = os.getenv('LINKEDIN_PROFILE_COLUMN')
 COMPANY_SIZE_COLUMN = os.getenv('COMPANY_SIZE_COLUMN')
 COMPANY_INDUSTRY_COLUMN = os.getenv('COMPANY_INDUSTRY_COLUMN')
+COMPANY_NAME_COLUMN = os.getenv('COMPANY_NAME_COLUMN')
 
 SHEETS = None
 
@@ -68,9 +69,20 @@ def google_auth(sheet_file_id=None):
         print(err)
 
 def get_sheets_data(service=None, sheet_file_id=None, sheet_name=None, column_range=None):
-    """(private) Returns data from Google Sheets source. It gets all rows of
-        'Sheet1' (the default Sheet in a new spreadsheet), but drops the first
-        (header) row. Use any desired data range (in standard A1 notation).
+    """
+        Retrieves data from a Google Sheets file.
+
+        Args:
+            service (obj): An authenticated Google Sheets service object. If not provided, a default service object will be used.
+            sheet_file_id (str): The ID of the Google Sheets file.
+            sheet_name (str): The name of the sheet within the Google Sheets file.
+            column_range (str): The range of columns to retrieve data from. If not provided, all columns will be retrieved.
+
+        Returns:
+            list: A list of lists representing the values retrieved from the specified range in the Google Sheets file. An empty list is returned if no values are found.
+
+        Note:
+            The header row is skipped when retrieving data.
     """
     if not service:
         service = SHEETS
@@ -80,7 +92,7 @@ def get_sheets_data(service=None, sheet_file_id=None, sheet_name=None, column_ra
     # skip header row
 
 
-def update_sheet(service=None, sheet_file_id=None, sheet_id=None, values=None, company_map=None):
+def update_sheet(service=None, sheet_file_id=None, sheet_id=None, sheet_data=None, company_map=None):
     """
         Updates a Google Sheet with the specified values.
 
@@ -88,7 +100,7 @@ def update_sheet(service=None, sheet_file_id=None, sheet_id=None, values=None, c
             service (object): The Google Sheets service object.
             sheet_file_id (str): The ID of the Google Sheet file.
             sheet_id (str): The ID of the specific sheet in the Google Sheet file.
-            values (list): A list of rows to update in the sheet.
+            sheet_data (list): A list of rows to update in the sheet.
             company_map (dict): A dictionary mapping company names to column values.
 
         Returns:
@@ -98,10 +110,9 @@ def update_sheet(service=None, sheet_file_id=None, sheet_id=None, values=None, c
     batch_requests = []
 
     # Iterate through the rows
-    for row_index, row in enumerate(values, start=1):
-        # Check if the value in column E is 'abc'
+    for row_index, row in enumerate(sheet_data, start=1):
         if row and row[0] in company_map:
-            # Create a request to update columns F, G, and H for this row
+            # Create a request to update columns LINKEDIN_PROFILE_COLUMN, COMPANY_SIZE_COLUMN, and COMPANY_INDUSTRY_COLUMN for this row
             update_request = {
                 'updateCells': {
                     'rows': [
@@ -126,4 +137,4 @@ def update_sheet(service=None, sheet_file_id=None, sheet_id=None, values=None, c
         service.spreadsheets().batchUpdate(spreadsheetId=sheet_file_id, body=request_body).execute()
         print(f"Updated {len(batch_requests)} rows")
     else:
-        print("No rows found in column E.")
+        print(f"No rows found in column {COMPANY_NAME_COLUMN}.")
