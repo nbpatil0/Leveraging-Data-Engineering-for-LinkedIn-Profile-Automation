@@ -11,7 +11,7 @@ from sheets import google_auth, get_sheets_data, update_sheet
 # Initialize Google Sheets
 sheet_service = google_auth()
 
-def driver_process(driver, company_name, name_profile_map):
+def get_company_details(driver, company_name, name_profile_map):
     """
         This function takes in a driver, company_name, and name_profile_map as parameters.
         It prints the company_name and then initializes an empty dictionary called company_details.
@@ -112,7 +112,7 @@ def start():
                 signal.signal(signal.SIGALRM, timeout_handler)
                 signal.alarm(500)
                 try:
-                    local_company_map[company_name] = driver_process(driver, company_name, name_profile_map)
+                    local_company_map[company_name] = get_company_details(driver, company_name, name_profile_map)
                 finally:
                     # Cancel the timer
                     signal.alarm(0)
