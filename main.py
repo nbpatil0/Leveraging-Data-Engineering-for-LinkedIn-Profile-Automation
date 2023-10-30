@@ -2,7 +2,7 @@ import json
 import signal
 import time
 
-from config import COMPANY_INDUSTRY_COLUMN, COMPANY_NAME_COLUMN, COMPANY_SIZE_COLUMN, LINKEDIN_PROFILE_COLUMN, SHEET_ID, SHEET_NAME, SHEETS_FILE_ID, STAT_FILE_NAME
+from config import COMPANY_INDUSTRY_COLUMN, COMPANY_NAME_COLUMN, COMPANY_SIZE_COLUMN, DEFAULT_FUNCTION_TIMEOUT, LINKEDIN_PROFILE_COLUMN, SHEET_ID, SHEET_NAME, SHEETS_FILE_ID, STAT_FILE_NAME
 from custom_exceptions import timeout_handler
 from scrap import google_search, get_company_size_and_industry, linked_search, quit_driver, start_driver
 from sheets import google_auth, get_sheets_data, update_sheet
@@ -91,7 +91,7 @@ def start():
         print('fetched sheet data')
         sheet_len = len(sheet_data)
         row_start = stat.get('row_start', 1)
-        max_count_per_cycle = stat.get('max_count_per_cycle', 5)
+        max_count_per_cycle = stat.get('max_count_per_cycle', 10)
 
         while(sheet_len > row_start):
             company_names = set()
@@ -110,7 +110,7 @@ def start():
 
             for company_name in company_names:
                 signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(500)
+                signal.alarm(DEFAULT_FUNCTION_TIMEOUT)
                 try:
                     local_company_map[company_name] = get_company_details(driver, company_name, name_profile_map)
                 finally:
