@@ -1,0 +1,9 @@
+{
+    "apps": [
+        {
+            "name": "linkedin_automation",
+            "script": "main.py",
+            "interpreter": "python3"
+        }
+    ]
+}
